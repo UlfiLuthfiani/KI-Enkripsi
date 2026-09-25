@@ -5,10 +5,12 @@ from dotenv import load_dotenv
 load_dotenv()
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from modules import capsule as cap, crypto_core as cc, timelock as tl
 
 app = FastAPI(title="Surat untuk Masa Depan")
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 
 class SealReq(BaseModel):
