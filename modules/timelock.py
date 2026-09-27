@@ -3,13 +3,6 @@ timelock.py
 Mekanisme "kapsul waktu": kapsul hanya boleh didekripsi setelah tanggal
 tertentu tercapai, terlepas dari benar tidaknya password.
 
-Catatan implementasi (penting untuk laporan):
-Ini BUKAN time-lock cryptography sejati (seperti Verifiable Delay Function),
-melainkan pengecekan waktu di level aplikasi terhadap timestamp yang
-tersimpan pada metadata kapsul. Simplifikasi ini diambil secara sadar
-karena time-lock puzzle kriptografis murni berada di luar cakupan mata
-kuliah ini. Nilai keamanan intinya tetap dijaga oleh AES-256-GCM /
-ChaCha20-Poly1305 dan Argon2id.
 """
 
 from datetime import datetime, timezone
