@@ -1,5 +1,8 @@
+// extras.js
+// Hanya berisi hal kosmetik (tampilan), TIDAK ada logika enkripsi/segel/buka
+// di sini. Semua fungsi inti tetap ada di script.js dan tidak diubah.
 
-// Efek judul melengkung ala tulisan tangan 
+// ---- 1) Efek judul melengkung ala tulisan tangan ----
 function arcifyTitle(el, spread = 16, rise = 16) {
   const text = el.textContent;
   el.textContent = '';
@@ -17,7 +20,7 @@ function arcifyTitle(el, spread = 16, rise = 16) {
 }
 document.querySelectorAll('.arc-title').forEach((el) => arcifyTitle(el));
 
-//Tombol mata untuk tampilkan/sembunyikan kata sandi
+// ---- 2) Tombol mata untuk tampilkan/sembunyikan kata sandi ----
 document.querySelectorAll('.eye-toggle').forEach((btn) => {
   btn.addEventListener('click', () => {
     const input = document.getElementById(btn.dataset.target);
@@ -25,7 +28,8 @@ document.querySelectorAll('.eye-toggle').forEach((btn) => {
     input.type = input.type === 'password' ? 'text' : 'password';
   });
 });
-// ---- Notifikasi "file sudah diunggah" ----
+
+// ---- 3) Notifikasi "file sudah diunggah" ----
 (function () {
   const fileInput = document.getElementById('file');
   const fileBox = document.getElementById('fileBox');
