@@ -10,6 +10,8 @@ Skrip pengujian wajib untuk laporan UTS:
 Jalankan: python testing.py            (muncul jendela pilih file)
          python testing.py --file a.pdf b.png
          python testing.py --no-dialog   (pakai berkas contoh di test_files/)
+         python testing.py --manual      (ketik sendiri teks uji lewat terminal)
+         python testing.py --manual --no-dialog
 Hasil (grafik & ringkasan) disimpan ke folder outputs/.
 """
 
@@ -93,28 +95,86 @@ def pilih_berkas_uji(argumen_file, pakai_dialog=True):
 
 
 # ---------------------------------------------------------------------------
+# 0b. Masukan teks diketik manual oleh pengguna lewat terminal
+# ---------------------------------------------------------------------------
+def input_teks_manual(sudah_ada=0, minimal_total=10):
+    """
+    Meminta pengguna mengetik teks uji satu per satu lewat terminal.
+    sudah_ada = jumlah masukan lain yang sudah pasti ikut diuji (mis. berkas
+    gambar/PDF yang sudah dipilih), supaya total keseluruhan tetap >= minimal_total
+    sesuai syarat tugas ("kebenaran dekripsi pada minimal 10 masukan berbeda").
+
+    Ketik teks lalu Enter untuk menambah satu masukan.
+    Ketik kosong (langsung Enter) untuk berhenti -- hanya diperbolehkan
+    setelah jumlah total mencapai minimal_total.
+    """
+    print("=" * 70)
+    print("MODE MANUAL: ketik sendiri teks yang mau diuji")
+    print("=" * 70)
+    print(f"  Total masukan minimal {minimal_total} (termasuk berkas gambar/PDF yang sudah dipilih).")
+    print("  Ketik teksnya lalu Enter. Kosongkan lalu Enter untuk berhenti.\n")
+
+    entries = []
+    idx = 1
+    while True:
+        total_sekarang = sudah_ada + len(entries)
+        sisa_minimal = minimal_total - total_sekarang
+        label_sisa = f" (masih perlu {sisa_minimal} lagi)" if sisa_minimal > 0 else " (sudah cukup, boleh berhenti kapan saja)"
+        try:
+            teks = input(f"  Teks uji #{idx}{label_sisa}: ")
+        except EOFError:
+            teks = ""
+
+        if teks == "":
+            if total_sekarang < minimal_total:
+                print(f"  Belum cukup -- baru {total_sekarang} dari {minimal_total} masukan. Lanjutkan mengetik.\n")
+                continue
+            konfirmasi = input(f"  Sudah {total_sekarang} masukan. Yakin berhenti? (y/n): ").strip().lower()
+            if konfirmasi == "y":
+                break
+            continue
+
+        entries.append((f"teks manual #{idx} ({len(teks.encode('utf-8'))} byte)", teks.encode("utf-8")))
+        idx += 1
+
+    return entries
+
+
+# ---------------------------------------------------------------------------
 # 1. Kebenaran dekripsi pada berbagai masukan
 # ---------------------------------------------------------------------------
-def test_kebenaran_dekripsi(berkas_uji):
+def test_kebenaran_dekripsi(berkas_uji, masukan_manual=None):
     print("=" * 70)
     print("1. UJI KEBENARAN DEKRIPSI (10+ masukan)")
     print("=" * 70)
 
-    test_inputs = [
-        ("teks pendek", b"Halo dunia"),
-        ("teks kosong", b""),
-        ("teks panjang", ("Lorem ipsum dolor sit amet. " * 200).encode()),
-        ("teks unicode", "Halo 你好 مرحبا 🎉".encode("utf-8")),
-        ("biner acak kecil", os.urandom(64)),
-        ("biner acak 1KB", os.urandom(1024)),
-        ("biner acak 10KB", os.urandom(10 * 1024)),
-        ("data JSON", b'{"nama": "budi", "nik": "1234567890123456"}'),
-        ("satu byte", b"\x00"),
-        ("data 100KB", os.urandom(100 * 1024)),
-    ]
+    if masukan_manual is not None:
+        # Mode manual: pengguna sendiri yang mengetik seluruh masukan teksnya
+        test_inputs = list(masukan_manual)
+    else:
+        # Mode bawaan (default): contoh masukan sudah disiapkan supaya hasilnya
+        # konsisten setiap dijalankan ulang -- dipakai kalau tidak ingin
+        # mengetik manual satu-satu.
+        test_inputs = [
+            ("teks pendek", b"Halo dunia"),
+            ("teks kosong", b""),
+            ("teks panjang", ("Lorem ipsum dolor sit amet. " * 200).encode()),
+            ("teks unicode", "Halo 你好 مرحبا 🎉".encode("utf-8")),
+            ("biner acak kecil", os.urandom(64)),
+            ("biner acak 1KB", os.urandom(1024)),
+            ("biner acak 10KB", os.urandom(10 * 1024)),
+            ("data JSON", b'{"nama": "budi", "nik": "1234567890123456"}'),
+            ("satu byte", b"\x00"),
+            ("data 100KB", os.urandom(100 * 1024)),
+        ]
     # berkas asli pilihan pengguna (gambar, PDF, dll) ikut diuji
     for nama_berkas, isi in berkas_uji:
         test_inputs.append((f"berkas: {nama_berkas} ({len(isi)} byte)", isi))
+
+    if len(test_inputs) < 10:
+        print(f"  PERINGATAN: hanya {len(test_inputs)} masukan (< 10 syarat tugas). "
+              f"Jalankan ulang dan tambah lagi teks/berkas uji.\n")
+
 
     key, salt = cc.derive_key("password_uji")
     hasil_semua = []
@@ -140,20 +200,56 @@ def test_kebenaran_dekripsi(berkas_uji):
     return hasil_semua
 
 
+def format_ukuran(n_byte: int) -> str:
+    """Ubah jumlah byte jadi label ringkas, mis. 1536 -> '1,5 KB'."""
+    if n_byte >= 1024 * 1024:
+        return f"{n_byte / (1024 * 1024):.2f} MB".replace(".", ",")
+    if n_byte >= 1024:
+        return f"{n_byte / 1024:.1f} KB".replace(".", ",")
+    return f"{n_byte} B"
+
+
 # ---------------------------------------------------------------------------
 # 2. Waktu enkripsi/dekripsi untuk berbagai ukuran berkas
 # ---------------------------------------------------------------------------
-def test_waktu_proses():
+def test_waktu_proses(berkas_uji=None):
     print("=" * 70)
-    print("2. UJI WAKTU ENKRIPSI/DEKRIPSI (1KB, 1MB, 10MB)")
+    print("2. UJI WAKTU ENKRIPSI/DEKRIPSI BERDASARKAN UKURAN BERKAS")
     print("=" * 70)
 
-    ukuran = {"1 KB": 1024, "1 MB": 1024 * 1024, "10 MB": 10 * 1024 * 1024}
     key, _ = cc.derive_key("password_uji")
 
+    if berkas_uji:
+        # Pakai berkas nyata yang sudah dipilih pengguna (yang sama dengan
+        # yang dipakai pada uji kebenaran di Bagian 1), diurutkan dari yang
+        # paling kecil ke paling besar. Idealnya pengguna memilih 1 berkas
+        # berukuran sekitar 1 KB, 1 berkas sekitar 1 MB, dan 1 berkas sekitar
+        # 10 MB supaya perbandingannya bermakna.
+        entries = sorted(berkas_uji, key=lambda pasangan: len(pasangan[1]))
+        data_map = {}
+        labels = []
+        for nama, isi in entries:
+            label = f"{nama} ({format_ukuran(len(isi))})"
+            labels.append(label)
+            data_map[label] = isi
+        print("  Memakai berkas nyata dari pilihan uji kebenaran (bukan data acak buatan):")
+        for label in labels:
+            print(f"    - {label}")
+        if len(entries) < 2 or len(entries[-1][1]) < 1024 * 1024:
+            print("  CATATAN: berkas yang dipilih kecil-kecil semua (belum ada yang ~1 MB/10 MB).")
+            print("  Supaya perbandingan ukuran 1 KB vs 1 MB vs 10 MB bermakna, jalankan lagi")
+            print("  dan pilih berkas asli dengan ukuran itu, misalnya lewat --file:")
+            print("    python testing.py --file kecil_1kb.jpg sedang_1mb.jpg besar_10mb.pdf\n")
+    else:
+        # Fallback: tidak ada berkas nyata yang cocok -> tetap pakai data acak
+        # sintetis berukuran tepat 1 KB / 1 MB / 10 MB seperti sebelumnya.
+        ukuran = {"1 KB (acak)": 1024, "1 MB (acak)": 1024 * 1024, "10 MB (acak)": 10 * 1024 * 1024}
+        labels = list(ukuran.keys())
+        data_map = {label: os.urandom(size) for label, size in ukuran.items()}
+
     hasil = {}
-    for label, size in ukuran.items():
-        data = os.urandom(size)
+    for label in labels:
+        data = data_map[label]
         hasil[label] = {}
         for algo_name, enc_fn, dec_fn in [
             ("AES-256-GCM", cc.encrypt_aes_gcm, cc.decrypt_aes_gcm),
@@ -168,20 +264,19 @@ def test_waktu_proses():
             enc_time = (t1 - t0) * 1000  # ms
             dec_time = (t2 - t1) * 1000  # ms
             hasil[label][algo_name] = (enc_time, dec_time)
-            print(f"  {label:6s} | {algo_name:18s} | enkripsi: {enc_time:8.3f} ms | dekripsi: {dec_time:8.3f} ms")
+            print(f"  {label:38s} | {algo_name:18s} | enkripsi: {enc_time:8.3f} ms | dekripsi: {dec_time:8.3f} ms")
 
-    # Grafik
-    labels = list(ukuran.keys())
+    # Grafik (labels sudah ditentukan di atas, baik dari berkas nyata maupun data acak)
     x = range(len(labels))
     width = 0.2
-    fig, ax = plt.subplots(figsize=(8, 5))
+    fig, ax = plt.subplots(figsize=(9, 5))
     for i, algo in enumerate(["AES-256-GCM", "ChaCha20-Poly1305"]):
         enc_vals = [hasil[l][algo][0] for l in labels]
         dec_vals = [hasil[l][algo][1] for l in labels]
         ax.bar([p + i * width for p in x], enc_vals, width, label=f"{algo} (enkripsi)")
         ax.bar([p + i * width for p in x], dec_vals, width, bottom=enc_vals, label=f"{algo} (dekripsi)", alpha=0.6)
     ax.set_xticks([p + width / 2 for p in x])
-    ax.set_xticklabels(labels)
+    ax.set_xticklabels(labels, rotation=15, ha="right", fontsize=8)
     ax.set_ylabel("Waktu (ms)")
     ax.set_title("Waktu Enkripsi/Dekripsi berdasarkan Ukuran Berkas")
     ax.legend(fontsize=8)
@@ -345,11 +440,21 @@ if __name__ == "__main__":
                         help="berkas uji (gambar/PDF/dll), boleh lebih dari satu")
     parser.add_argument("--no-dialog", action="store_true",
                         help="jangan buka jendela pilih file; pakai berkas contoh di test_files/")
+    parser.add_argument("--manual", action="store_true",
+                        help="ketik sendiri teks uji satu per satu lewat terminal, "
+                             "bukan pakai contoh bawaan di kode")
     args = parser.parse_args()
 
     berkas_uji = pilih_berkas_uji(args.file, pakai_dialog=not args.no_dialog)
-    hasil_kebenaran = test_kebenaran_dekripsi(berkas_uji)
-    hasil_waktu = test_waktu_proses()
+
+    masukan_manual = None
+    if args.manual:
+        masukan_manual = input_teks_manual(sudah_ada=len(berkas_uji), minimal_total=10)
+
+    hasil_kebenaran = test_kebenaran_dekripsi(berkas_uji, masukan_manual=masukan_manual)
+    # berkas yang sama (gambar/PDF yang sudah dipilih di atas) dipakai ulang
+    # untuk uji waktu proses, supaya waktunya dihitung dari data nyata
+    hasil_waktu = test_waktu_proses(berkas_uji)
     hasil_avalanche = test_avalanche_effect()
     hasil_entropi = test_entropi_histogram()
     ekspor_xlsx(hasil_kebenaran, hasil_waktu, hasil_avalanche, hasil_entropi)
