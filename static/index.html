@@ -4,6 +4,9 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Surat untuk Masa Depan</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@700;800&family=Nunito:wght@400;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="/static/style.css">
   <!-- PDF.js: dipakai untuk menampilkan cover/halaman pertama PDF saat kapsul dibuka -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.5.141/pdf.min.js"></script>
@@ -15,86 +18,150 @@
   </script>
 </head>
 <body>
-  <div class="stripe"></div>
-
   <main>
-    <h1>Surat untuk Masa Depan</h1>
-    <p class="sub">
-      Tulis pesan atau simpan berkas, segel dengan kata sandi, dan tentukan kapan
-      kapsul boleh dibuka. Sebelum waktunya, tidak ada yang bisa membukanya,
-      termasuk kamu.
-    </p>
+    <h1 class="arc-title">Surat Untuk Masa Depan</h1>
 
     <nav role="tablist">
-      <button role="tab" id="t1" aria-selected="true">Segel kapsul</button>
-      <button role="tab" id="t2" aria-selected="false">Buka kapsul</button>
+      <button role="tab" id="t1" aria-selected="true">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+        Tulis Surat
+      </button>
+      <button role="tab" id="t2" aria-selected="false">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+        Buka Surat
+      </button>
     </nav>
 
-    <!-- ======================= TAB 1: SEGEL KAPSUL ======================= -->
-    <section id="p1">
-      <label>Isi kapsul</label>
-      <select id="kind">
-        <option value="text">Pesan teks</option>
-        <option value="file">Berkas (gambar, PDF, dll)</option>
-      </select>
+    <div class="card">
+      <p class="sub">
+        Tulis pesan atau simpan berkas, segel dengan kata sandi, dan tentukan kapan
+        kapsul boleh dibuka. Sebelum waktunya, tidak ada yang bisa membukanya,
+        termasuk kamu.
+      </p>
 
-      <div id="textBox">
-        <textarea id="msg" placeholder="Halo aku di masa depan..."></textarea>
-      </div>
-      <div id="fileBox" class="hide">
-        <input type="file" id="file">
-      </div>
+      <!-- ======================= TAB 1: SEGEL KAPSUL (Tulis Surat) ======================= -->
+      <section id="p1">
+        <h2 class="card-title">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.828 2.828 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5L17 3z"></path></svg>
+          Isi Pesan
+        </h2>
 
-      <div class="row">
-        <div>
-          <label for="pw">Kata sandi</label>
-          <input type="password" id="pw" autocomplete="new-password">
-        </div>
-        <div>
-          <label for="algo">Algoritma</label>
-          <select id="algo">
-            <option>AES-256-GCM</option>
-            <option>ChaCha20-Poly1305</option>
+        <div class="panel">
+          <label class="field-label" for="kind">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Jenis Pesan
+          </label>
+          <select id="kind">
+            <option value="text">Pesan Teks</option>
+            <option value="file">Berkas (gambar, PDF, dll)</option>
           </select>
+
+          <div id="textBox">
+            <textarea id="msg" placeholder="Isi Pesan..."></textarea>
+          </div>
+          <div id="fileBox" class="hide">
+            <label class="filebtn" for="file">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+              Pilih File
+            </label>
+            <input type="file" id="file" class="visually-hidden-file">
+          </div>
+
+          <div class="row">
+            <div>
+              <label class="field-label" for="pw">
+                <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                Kata Sandi
+              </label>
+              <input type="password" id="pw" autocomplete="new-password" placeholder="Masukan Kata Sandi">
+            </div>
+            <div>
+              <label class="field-label" for="algo">Algoritma</label>
+              <select id="algo">
+                <option>AES-256-GCM</option>
+                <option>ChaCha20-Poly1305</option>
+              </select>
+            </div>
+          </div>
+
+          <label class="field-label" for="when">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            Dibuka pada
+          </label>
+          <input type="datetime-local" id="when">
+
+          <details class="hybrid-box">
+            <summary>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 9.9-1"></path></svg>
+              Enkripsi hibrida (RSA-OAEP) (opsional)
+            </summary>
+            <small>
+              Tempat publik key penerima (PEM), kata sandi tidak dipakai: hanya
+              pemilik private key yang bisa membuka setelah waktunya.
+            </small>
+            <textarea id="pub" placeholder="PUBLIC KEY"></textarea>
+          </details>
+
+          <button class="go" id="seal">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"></line><polygon points="22 2 15 22 11 13 2 9 22 2"></polygon></svg>
+            Segel Surat
+            <svg class="icon-sm chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"></polyline></svg>
+          </button>
+          <div id="sealOut"></div>
         </div>
-      </div>
+      </section>
 
-      <label for="when">Boleh dibuka pada (waktu perangkatmu)</label>
-      <input type="datetime-local" id="when">
+      <!-- ======================= TAB 2: BUKA KAPSUL (Buka Surat) ======================= -->
+      <section id="p2" class="hide">
+        <h2 class="card-title">
+          <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="4" width="20" height="16" rx="2"></rect><polyline points="22 6 12 13 2 6"></polyline></svg>
+          Buka Surat
+        </h2>
 
-      <details style="margin-top:14px">
-        <summary>Enkripsi hibrida (RSA-OAEP), opsional</summary>
-        <small>
-          Tempel public key penerima (PEM). Kata sandi tidak dipakai; hanya
-          pemilik private key yang bisa membuka setelah waktunya.
-        </small>
-        <textarea id="pub" placeholder="-----BEGIN PUBLIC KEY-----"></textarea>
-      </details>
+        <div class="panel">
+          <label class="field-label" for="capIn">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline></svg>
+            Masukkan Pesan Terenkripsi
+          </label>
+          <textarea id="capIn" placeholder="Tempelkan isi pesan yang sudah terenkripsi/pilih file terenkripsi"></textarea>
 
-      <button class="go" id="seal">Segel kapsul</button>
-      <div id="sealOut"></div>
-    </section>
+          <label class="filebtn" for="capFile">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg>
+            Pilih File
+          </label>
+          <input type="file" id="capFile" class="visually-hidden-file">
+          <p id="capInfo"><small></small></p>
 
-    <!-- ======================= TAB 2: BUKA KAPSUL ======================= -->
-    <section id="p2" class="hide">
-      <label for="capIn">Tempel isi kapsul (JSON) atau pilih berkas .kapsul</label>
-      <textarea id="capIn"></textarea>
-      <input type="file" id="capFile" style="margin-top:8px">
-      <p id="capInfo"><small></small></p>
+          <label class="field-label" for="pw2">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Kata Sandi
+          </label>
+          <div class="pw-wrap">
+            <input type="password" id="pw2" autocomplete="off" placeholder="Masukkan Kata Sandi">
+            <button type="button" class="eye-toggle" data-target="pw2" aria-label="Tampilkan/sembunyikan kata sandi">
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>
+            </button>
+          </div>
 
-      <label for="pw2">Kata sandi</label>
-      <input type="password" id="pw2" autocomplete="off">
+          <details class="hybrid-box" open>
+            <summary>
+              <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><polyline points="9 12 11 14 15 10"></polyline></svg>
+              Privat Key
+            </summary>
+            <textarea id="priv" placeholder="---Begin Privat Key---"></textarea>
+          </details>
 
-      <details style="margin-top:14px">
-        <summary>Kapsul hibrida: private key RSA</summary>
-        <textarea id="priv" placeholder="-----BEGIN PRIVATE KEY-----"></textarea>
-      </details>
-
-      <button class="go" id="open">Buka kapsul</button>
-      <div id="openOut"></div>
-    </section>
+          <button class="go" id="open">
+            <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+            Buka Surat
+          </button>
+          <div id="openOut"></div>
+        </div>
+      </section>
+    </div>
   </main>
 
   <script src="/static/script.js"></script>
+  <script src="/static/extras.js"></script>
 </body>
 </html>
