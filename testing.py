@@ -1,15 +1,8 @@
 """
 testing.py
-Skrip pengujian wajib untuk laporan UTS:
-1. Kebenaran dekripsi pada >=10 masukan berbeda (termasuk gambar & PDF)
-2. Waktu enkripsi/dekripsi untuk 1 KB, 1 MB, 10 MB
-3. Avalanche effect (perubahan 1 bit plaintext / key)
-4. Entropi & histogram byte cipherteks vs plainteks
-5. Perbandingan AES-256-GCM vs ChaCha20-Poly1305
 
 Jalankan: python testing.py            (muncul jendela pilih file)
          python testing.py --file a.pdf b.png
-         python testing.py --no-dialog   (pakai berkas contoh di test_files/)
          python testing.py --manual      (ketik sendiri teks uji lewat terminal)
          python testing.py --manual --no-dialog
 Hasil (grafik & ringkasan) disimpan ke folder outputs/.
@@ -29,26 +22,7 @@ from openpyxl import Workbook
 from modules import crypto_core as cc
 
 OUTPUT_DIR = "outputs"
-TEST_FILES_DIR = "test_files"
 os.makedirs(OUTPUT_DIR, exist_ok=True)
-
-
-def _buat_berkas_contoh():
-    """Membuat PNG & PDF contoh di test_files/ bila belum ada (dipakai sebagai cadangan)."""
-    png_path = os.path.join(TEST_FILES_DIR, "test_image.png")
-    pdf_path = os.path.join(TEST_FILES_DIR, "test_document.pdf")
-    if not (os.path.exists(png_path) and os.path.exists(pdf_path)):
-        os.makedirs(TEST_FILES_DIR, exist_ok=True)
-        fig, ax = plt.subplots(figsize=(4, 3))
-        ax.bar(["AES-GCM", "ChaCha20"], [92, 88], color=["#1f4fbf", "#c92f27"])
-        ax.set_title("Berkas Uji - Kapsul Waktu Digital")
-        plt.tight_layout(); plt.savefig(png_path, dpi=100); plt.close()
-
-        fig, ax = plt.subplots(figsize=(6, 4)); ax.axis("off")
-        ax.text(0.5, 0.6, "Dokumen Uji", ha="center", fontsize=20, weight="bold")
-        ax.text(0.5, 0.45, "Surat untuk Masa Depan - Kapsul Waktu Digital", ha="center", fontsize=11)
-        plt.savefig(pdf_path); plt.close()
-    return [png_path, pdf_path]
 
 
 def pilih_berkas_uji(argumen_file, pakai_dialog=True):
@@ -56,7 +30,6 @@ def pilih_berkas_uji(argumen_file, pakai_dialog=True):
     Menentukan berkas uji (gambar, PDF, dll) dengan urutan prioritas:
       1. argumen --file di command line
       2. jendela pilih file (tkinter) dari laptop, boleh pilih banyak berkas
-      3. berkas contoh di test_files/ (bila dialog dibatalkan / tidak tersedia)
     Mengembalikan daftar (nama_berkas, isi_bytes).
     """
     paths = list(argumen_file or [])
@@ -75,11 +48,11 @@ def pilih_berkas_uji(argumen_file, pakai_dialog=True):
             ))
             root.destroy()
         except Exception as e:
-            print(f"  (Jendela pilih file tidak tersedia: {e}. Memakai berkas contoh.)")
+            print(f"  (Jendela pilih file tidak tersedia: {e})")
 
     if not paths:
-        print("  Tidak ada berkas dipilih -> memakai berkas contoh di test_files/")
-        paths = _buat_berkas_contoh()
+        print("  Tidak ada berkas dipilih.")
+        raise SystemExit(1)
 
     berkas = []
     for p in paths:
@@ -89,8 +62,8 @@ def pilih_berkas_uji(argumen_file, pakai_dialog=True):
     ada_gambar = any(n.lower().endswith((".png", ".jpg", ".jpeg", ".bmp", ".gif")) for n, _ in berkas)
     ada_pdf = any(n.lower().endswith(".pdf") for n, _ in berkas)
     if not (ada_gambar and ada_pdf):
-        print("  PERINGATAN: syarat tugas meminta pengujian berkas gambar DAN PDF. "
-              "Pastikan keduanya ikut terpilih (bisa jalankan ulang).")
+        print("Pengujian berkas gambar DAN PDF. "
+              "Pastikan keduanya ikut terpilih.")
     return berkas
 
 
@@ -105,7 +78,7 @@ def input_teks_manual(sudah_ada=0, minimal_total=10):
     sesuai syarat tugas ("kebenaran dekripsi pada minimal 10 masukan berbeda").
 
     Ketik teks lalu Enter untuk menambah satu masukan.
-    Ketik kosong (langsung Enter) untuk berhenti -- hanya diperbolehkan
+    Ketik kosong (langsung Enter) untuk berhenti hanya diperbolehkan
     setelah jumlah total mencapai minimal_total.
     """
     print("=" * 70)
@@ -118,10 +91,8 @@ def input_teks_manual(sudah_ada=0, minimal_total=10):
     idx = 1
     while True:
         total_sekarang = sudah_ada + len(entries)
-        sisa_minimal = minimal_total - total_sekarang
-        label_sisa = f" (masih perlu {sisa_minimal} lagi)" if sisa_minimal > 0 else " (sudah cukup, boleh berhenti kapan saja)"
         try:
-            teks = input(f"  Teks uji #{idx}{label_sisa}: ")
+            teks = input(f"  Teks uji #{idx}: ")
         except EOFError:
             teks = ""
 
@@ -145,7 +116,7 @@ def input_teks_manual(sudah_ada=0, minimal_total=10):
 # ---------------------------------------------------------------------------
 def test_kebenaran_dekripsi(berkas_uji, masukan_manual=None):
     print("=" * 70)
-    print("1. UJI KEBENARAN DEKRIPSI (10+ masukan)")
+    print("1. UJI KEBENARAN DEKRIPSI")
     print("=" * 70)
 
     if masukan_manual is not None:
@@ -153,7 +124,7 @@ def test_kebenaran_dekripsi(berkas_uji, masukan_manual=None):
         test_inputs = list(masukan_manual)
     else:
         # Mode bawaan (default): contoh masukan sudah disiapkan supaya hasilnya
-        # konsisten setiap dijalankan ulang -- dipakai kalau tidak ingin
+        # konsisten setiap dijalankan ulang dipakai kalau tidak ingin
         # mengetik manual satu-satu.
         test_inputs = [
             ("teks pendek", b"Halo dunia"),
@@ -172,7 +143,7 @@ def test_kebenaran_dekripsi(berkas_uji, masukan_manual=None):
         test_inputs.append((f"berkas: {nama_berkas} ({len(isi)} byte)", isi))
 
     if len(test_inputs) < 10:
-        print(f"  PERINGATAN: hanya {len(test_inputs)} masukan (< 10 syarat tugas). "
+        print(f"  PERINGATAN: hanya {len(test_inputs)} masukan "
               f"Jalankan ulang dan tambah lagi teks/berkas uji.\n")
 
 
@@ -194,9 +165,6 @@ def test_kebenaran_dekripsi(berkas_uji, masukan_manual=None):
             status = "OK" if sukses else "GAGAL"
             print(f"  [{status}] {nama:58s} | {algo_name}")
 
-    total = len(hasil_semua)
-    sukses_count = sum(1 for _, _, s in hasil_semua if s)
-    print(f"\nRingkasan: {sukses_count}/{total} pengujian berhasil.\n")
     return hasil_semua
 
 
@@ -232,7 +200,6 @@ def test_waktu_proses(berkas_uji=None):
             label = f"{nama} ({format_ukuran(len(isi))})"
             labels.append(label)
             data_map[label] = isi
-        print("  Memakai berkas nyata dari pilihan uji kebenaran (bukan data acak buatan):")
         for label in labels:
             print(f"    - {label}")
         if len(entries) < 2 or len(entries[-1][1]) < 1024 * 1024:
@@ -283,7 +250,6 @@ def test_waktu_proses(berkas_uji=None):
     plt.tight_layout()
     plt.savefig(f"{OUTPUT_DIR}/waktu_proses.png", dpi=150)
     plt.close()
-    print(f"\nGrafik disimpan: {OUTPUT_DIR}/waktu_proses.png\n")
     return hasil
 
 
@@ -342,7 +308,6 @@ def test_avalanche_effect():
         print(f"    - Flip 1 bit plaintext -> {persen_plaintext:.2f}% bit cipherteks berubah")
         print(f"    - Flip 1 bit key       -> {persen_key:.2f}% bit cipherteks berubah")
 
-    print("\n  Idealnya avalanche effect mendekati 50% (perubahan acak/tidak terprediksi).\n")
     return hasil
 
 
@@ -361,39 +326,59 @@ def calc_entropy(data: bytes) -> float:
     return entropy
 
 
-def test_entropi_histogram():
+def test_entropi_histogram(berkas_uji=None):
+    """
+    Menghitung entropi & menggambar histogram byte plaintext vs cipherteks.
+    Selalu menyertakan 1 baris teks contoh berpola (sebagai pembanding "data
+    tidak acak"), ditambah 1 baris untuk setiap berkas nyata yang dipilih
+    pengguna (mis. gambar & PDF), sehingga grafiknya mengikuti masukan
+    pengguna, bukan cuma satu contoh tetap.
+    """
     print("=" * 70)
     print("4. UJI ENTROPI & HISTOGRAM BYTE")
     print("=" * 70)
 
-    # Plaintext yang polanya jelas terlihat (bukan acak) agar kontrasnya jelas
-    plaintext = ("Ini adalah contoh teks biasa yang polanya jelas terlihat dan tidak acak. " * 50).encode()
     key, _ = cc.derive_key("password_uji")
-    ciphertext, nonce = cc.encrypt_aes_gcm(plaintext, key)
 
-    ent_plain = calc_entropy(plaintext)
-    ent_cipher = calc_entropy(ciphertext)
+    kasus = [("teks berpola (bukan berkas)",
+              ("Ini adalah contoh teks biasa yang polanya jelas terlihat dan tidak acak. " * 50).encode())]
 
-    print(f"  Entropi plaintext : {ent_plain:.4f} bit/byte (maks 8.0)")
-    print(f"  Entropi cipherteks: {ent_cipher:.4f} bit/byte (maks 8.0)")
-    print(f"  -> Cipherteks yang baik harus mendekati 8.0 (distribusi byte seragam/acak)\n")
+    for nama, isi in (berkas_uji or []):
+        kasus.append((nama, isi))
 
-    fig, axes = plt.subplots(1, 2, figsize=(11, 4))
-    axes[0].hist(list(plaintext), bins=256, range=(0, 255), color="steelblue")
-    axes[0].set_title(f"Histogram Byte Plaintext\n(Entropi = {ent_plain:.2f} bit/byte)")
-    axes[0].set_xlabel("Nilai byte (0-255)")
-    axes[0].set_ylabel("Frekuensi")
+    hasil = []  # (label, ent_plain, ent_cipher, plaintext, ciphertext)
+    for label, plaintext in kasus:
+        ciphertext, nonce = cc.encrypt_aes_gcm(plaintext, key)
+        ent_plain = calc_entropy(plaintext)
+        ent_cipher = calc_entropy(ciphertext)
+        hasil.append((label, ent_plain, ent_cipher, plaintext, ciphertext))
+        print(f"  {label}")
+        print(f"    Entropi plaintext : {ent_plain:.4f} bit/byte (maks 8.0)")
+        print(f"    Entropi cipherteks: {ent_cipher:.4f} bit/byte (maks 8.0)")
+        print(f"    -> Cipherteks yang baik harus mendekati 8.0 (distribusi byte seragam/acak)")
 
-    axes[1].hist(list(ciphertext), bins=256, range=(0, 255), color="indianred")
-    axes[1].set_title(f"Histogram Byte Cipherteks\n(Entropi = {ent_cipher:.2f} bit/byte)")
-    axes[1].set_xlabel("Nilai byte (0-255)")
-    axes[1].set_ylabel("Frekuensi")
+    n = len(hasil)
+    fig, axes = plt.subplots(n, 2, figsize=(11, 4 * n))
+    if n == 1:
+        axes = [axes]
+
+    for row, (label, ent_plain, ent_cipher, plaintext, ciphertext) in enumerate(hasil):
+        axes[row][0].hist(list(plaintext), bins=256, range=(0, 255), color="steelblue")
+        axes[row][0].set_title(f"Plaintext: {label}\n(Entropi = {ent_plain:.2f} bit/byte)", fontsize=9)
+        axes[row][0].set_xlabel("Nilai byte (0-255)")
+        axes[row][0].set_ylabel("Frekuensi")
+
+        axes[row][1].hist(list(ciphertext), bins=256, range=(0, 255), color="indianred")
+        axes[row][1].set_title(f"Cipherteks: {label}\n(Entropi = {ent_cipher:.2f} bit/byte)", fontsize=9)
+        axes[row][1].set_xlabel("Nilai byte (0-255)")
+        axes[row][1].set_ylabel("Frekuensi")
 
     plt.tight_layout()
     plt.savefig(f"{OUTPUT_DIR}/entropi_histogram.png", dpi=150)
     plt.close()
-    print(f"Grafik disimpan: {OUTPUT_DIR}/entropi_histogram.png\n")
-    return ent_plain, ent_cipher
+    print(f"\nGrafik disimpan: {OUTPUT_DIR}/entropi_histogram.png\n")
+
+    return [(label, ent_plain, ent_cipher) for label, ent_plain, ent_cipher, _, _ in hasil]
 
 
 # ---------------------------------------------------------------------------
@@ -420,14 +405,12 @@ def ekspor_xlsx(kebenaran, waktu, avalanche, entropi):
         ws3.append([algo, round(v["plaintext_bit_flip"], 3), round(v["key_bit_flip"], 3)])
 
     ws4 = wb.create_sheet("Entropi")
-    ent_plain, ent_cipher = entropi
-    ws4.append(["Jenis Data", "Entropi (bit/byte)", "Maksimum Teoretis"])
-    ws4.append(["Plaintext", round(ent_plain, 4), 8.0])
-    ws4.append(["Cipherteks (AES-256-GCM)", round(ent_cipher, 4), 8.0])
+    ws4.append(["Data", "Entropi Plaintext (bit/byte)", "Entropi Cipherteks (bit/byte)", "Maksimum Teoretis"])
+    for label, ent_plain, ent_cipher in entropi:
+        ws4.append([label, round(ent_plain, 4), round(ent_cipher, 4), 8.0])
 
     path = os.path.join(OUTPUT_DIR, "hasil_pengujian.xlsx")
     wb.save(path)
-    print(f"Data pengujian diekspor ke: {path}\n")
 
 
 # ---------------------------------------------------------------------------
@@ -439,10 +422,9 @@ if __name__ == "__main__":
     parser.add_argument("--file", nargs="+", metavar="BERKAS",
                         help="berkas uji (gambar/PDF/dll), boleh lebih dari satu")
     parser.add_argument("--no-dialog", action="store_true",
-                        help="jangan buka jendela pilih file; pakai berkas contoh di test_files/")
+                        help="jangan buka jendela pilih file; harus dipakai bersama --file")
     parser.add_argument("--manual", action="store_true",
-                        help="ketik sendiri teks uji satu per satu lewat terminal, "
-                             "bukan pakai contoh bawaan di kode")
+                        help="ketik sendiri teks uji satu per satu lewat terminal")
     args = parser.parse_args()
 
     berkas_uji = pilih_berkas_uji(args.file, pakai_dialog=not args.no_dialog)
@@ -456,10 +438,5 @@ if __name__ == "__main__":
     # untuk uji waktu proses, supaya waktunya dihitung dari data nyata
     hasil_waktu = test_waktu_proses(berkas_uji)
     hasil_avalanche = test_avalanche_effect()
-    hasil_entropi = test_entropi_histogram()
+    hasil_entropi = test_entropi_histogram(berkas_uji)
     ekspor_xlsx(hasil_kebenaran, hasil_waktu, hasil_avalanche, hasil_entropi)
-    print("=" * 70)
-    print("SEMUA PENGUJIAN WAJIB SELESAI.")
-    print("Grafik  -> outputs/*.png")
-    print("Data uji -> outputs/hasil_pengujian.xlsx")
-    print("=" * 70)
