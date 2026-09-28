@@ -44,20 +44,47 @@ pembuatnya sendiri meskipun kata sandinya benar.
    ```
 
 2. (Disarankan) Buat dan aktifkan virtual environment
+
+   Buat venv (semua sistem operasi):
    ```bash
    python -m venv .venv
-   source .venv/bin/activate        # Windows: .venv\Scripts\activate
    ```
+
+   Aktifkan venv sesuai terminal yang dipakai:
+
+   | Windows PowerShell | `.venv\Scripts\Activate.ps1` |
+   | Windows CMD | `.venv\Scripts\activate.bat` |
+   | Linux / macOS | `source .venv/bin/activate` |
+
+   Jika berhasil, awal baris terminal akan muncul tanda `(.venv)`.
+
+   **Jika di PowerShell muncul error** *"running scripts is disabled on this
+   system"* (execution policy), pilih salah satu cara berikut:
+
+   - **Opsi A - izinkan hanya untuk jendela PowerShell yang sedang terbuka**
+     (paling aman, berlaku sementara):
+     ```powershell
+     Set-ExecutionPolicy -Scope Process -ExecutionPolicy Bypass
+     .venv\Scripts\Activate.ps1
+     ```
+   - **Opsi B - izinkan permanen untuk akun pengguna ini:**
+     ```powershell
+     Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+     .venv\Scripts\Activate.ps1
+     ```
+   - **Opsi C - pakai CMD, bukan PowerShell:**
+     ```bat
+     .venv\Scripts\activate.bat
+     ```
 
 3. Pasang dependensi
    ```bash
    pip install -r requirements.txt
    ```
 
-4. Buat berkas `.env` di root proyek berisi kunci rahasia untuk mekanisme
-   time-lock (bebas diisi string acak apa saja, jangan dibagikan/diunggah):
+4. Buat berkas `.env` di root proyek berisi kunci rahasia untuk mekanisme time-lock
    ```bash
-   echo "TIMELOCK_SECRET=ganti-dengan-string-acak-rahasia-anda" > .env
+   python -c "import secrets; open('.env','w').write('TIMELOCK_SECRET='+secrets.token_hex(32)+'\n')"
    ```
 
 ## Cara Menjalankan
@@ -68,7 +95,7 @@ Jalankan server API + web dengan Uvicorn:
 uvicorn server:app --reload
 ```
 
-Lalu buka `http://127.0.0.1:8000` di peramban.
+Lalu buka `http://127.0.0.1:8000` di chrome
 
 ## Contoh Penggunaan
 
@@ -87,11 +114,34 @@ Lalu buka `http://127.0.0.1:8000` di peramban.
 
 ### Mode hibrida (RSA-OAEP)
 
-Pada tab **Tulis Surat**, buka bagian **Enkripsi hibrida (opsional)** dan
-tempelkan kunci publik (PEM) penerima — kata sandi tidak perlu diisi. Saat
-membuka, penerima menempelkan kunci privat (PEM) miliknya pada tab
-**Buka Surat**. Contoh pasangan kunci uji tersedia di `public.pem` dan
-`private.pem` 
+#### 1. Membuat pasangan kunci (public key & private key)
+
+```bash
+python -c "from modules import crypto_core as cc; priv,pub=cc.generate_rsa_keypair(); open('private.pem','wb').write(cc.serialize_private_key(priv)); open('public.pem','wb').write(cc.serialize_public_key(pub))"
+```
+
+Hasilnya 
+
+| `public.pem` | `-----BEGIN PUBLIC KEY-----` | Boleh dibagikan ke pengirim surat |
+| `private.pem` | `-----BEGIN PRIVATE KEY-----` | **Rahasia**, hanya penerima yang memegang |
+
+
+Salin isi kunci langsung ke clipboard supaya mudah ditempel ke web:
+```powershell
+Get-Content public.pem -Raw | Set-Clipboard     # Windows PowerShell
+```
+
+#### 2. Memakai kunci di aplikasi
+
+- **Mengunci (pengirim):** pada tab **Tulis Surat**, buka bagian **Enkripsi
+  hibrida (opsional)**, tempelkan isi `public.pem` (lengkap dengan baris
+  `-----BEGIN ...-----` dan `-----END ...-----`). Kata sandi tidak perlu
+  diisi. Lalu klik **Segel Surat**.
+- **Membuka (penerima):** pada tab **Buka Surat**, tempelkan kapsul, kosongkan
+  kata sandi, lalu tempelkan isi `private.pem` di kotak **Privat Key**.
+
+Surat hanya bisa dibuka dengan private key yang **berpasangan** dengan
+public key yang dipakai saat menyegel.
 
 ## Menjalankan Pengujian Kuantitatif
 
@@ -105,9 +155,4 @@ AES-256-GCM vs ChaCha20-Poly1305), lalu mengekspor hasilnya ke
 # Pilih berkas uji (gambar & PDF) lewat jendela dialog
 python testing.py
 
-# Atau tentukan berkas uji langsung lewat argumen
-python testing.py --file contoh.png contoh.pdf --no-dialog
 ```
-
-
-
